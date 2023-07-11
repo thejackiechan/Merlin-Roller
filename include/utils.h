@@ -33,14 +33,11 @@ namespace Utils
 
     struct SlopeImpact
     {
-        float slopeID;
+        int slopeID;
         float firstTime; // s
         float lastTime;  // s
-    };
 
-    struct BallImpacts {
-        float ballID;
-        std::vector<SlopeImpact> impacts;
+        SlopeImpact(int inSlopeID, float inFirstTime, float inLastTime) : slopeID{inSlopeID}, firstTime{inFirstTime}, lastTime{inLastTime} {}
     };
 
     class WorldObject

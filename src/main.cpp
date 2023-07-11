@@ -11,29 +11,28 @@ using Vector2D = LinearAlgebra::Vector2D;
 
 int main(void)
 {
-    Vector2D v1{1, 2};
-    Vector2D v2{0, 0};
-    // Slope s(1, Point2D{1, 1}, Point2D{2,2});
+    // Ball b1(1, Point2D{10.f, 50.9961}, 1.f, 2.f);
+    // std::shared_ptr<Ball> b1Ptr = std::make_shared<Ball>(b1);
 
-    Vector2D v3 = LinearAlgebra::projAOntoB(v1, v2);
+    Ball b1(1, Point2D{5.f, 11.f}, 2.f, 10.f, 2.f);
+    std::shared_ptr<Ball> b1Ptr = std::make_shared<Ball>(b1);
 
-    // std::cout << v3 << "\n";
-    // float res = LinearAlgebra::computeProjMagOfAOnB(v1, v2);
-    std::cout << "x is: " << v3.x() << ", y is: " << v3.y() << "\n";
+    Slope s1(1, Point2D{0.f, 10.f}, Point2D{100.f, 10.f});
+    std::shared_ptr<Slope> s1Ptr = std::make_shared<Slope>(s1);
 
-    Ball b(1, Point2D{5, 5}, 2, 1, 1, 0);
-    std::shared_ptr<Ball> bPtr = std::make_shared<Ball>(b);
-    std::cout << bPtr->getRadius() << "\n";
-    std::cout << bPtr->getID() << "\n";
-    std::cout << bPtr->getCenter().x << "\n";
-    std::cout << bPtr->getCenter().y << "\n";
-    std::cout << bPtr->getLinearVelocity() << "\n";
-    std::cout << bPtr->getInertia() << "\n";
-    bPtr->printState();
+    // Slope s1(1, Point2D{0.f, 50.f}, Point2D{100.f, 0.f});
+    // std::shared_ptr<Slope> s1Ptr = std::make_shared<Slope>(s1);
+
+    // Slope s2(2, Point2D{0.f, 0.f}, Point2D{100.f, 50.f});
+    // std::shared_ptr<Slope> s2Ptr = std::make_shared<Slope>(s2);
 
     std::vector<std::shared_ptr<Utils::WorldObject>> objVec;
-    objVec.push_back(bPtr);
+    objVec.push_back(b1Ptr);
+    objVec.push_back(s1Ptr);
+    // objVec.push_back(s2Ptr);
     Simulation sim(objVec);
+    sim.runSimulation();
+    sim.printSlopeImpactTimes(b1);
 
     return 0;
 }

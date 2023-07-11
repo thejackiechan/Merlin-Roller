@@ -7,3 +7,10 @@ Ball::Ball(int id, const Point2D &center, float radius, float mass, float xVel, 
     setObjType(Utils::ObjectType::Ball);
     inertia_ = 2 * mass * radius * radius / 5;
 }
+
+void Ball::printState() const
+{
+    std::cout << "Ball " << getID() << " (x = " << center_.x
+              << ", y = " << center_.y << ") (vx = " << xVel_
+              << ", vy = " << yVel_ << ") (wz = " << angVel_ << ") \n";
+}

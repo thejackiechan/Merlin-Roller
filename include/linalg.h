@@ -20,7 +20,8 @@ namespace LinearAlgebra
             p_ = p2 - p1;
         }
 
-        Vector2D(const Vector2D &v) {
+        Vector2D(const Vector2D &v)
+        {
             p_.x = v.x();
             p_.y = v.y();
         }
@@ -45,33 +46,35 @@ namespace LinearAlgebra
             return Vector2D{p_.x / val, p_.y / val};
         }
 
-        const float dot(const Vector2D &rhs) const
+        inline const float dot(const Vector2D &rhs) const
         {
             return p_.x * rhs.x() + p_.y * rhs.y();
         }
 
-        const float cross(const Vector2D &rhs) const
+        inline const float cross(const Vector2D &rhs) const
         {
             return p_.x * rhs.y() - p_.y * rhs.x();
         }
 
-        const float getMagnitude() const
+        inline const float getMagnitude() const
         {
             return Utils::computeMagnitude(p_.x, p_.y);
         }
 
-        const float x() const
+        inline const float x() const
         {
             return p_.x;
         }
 
-        const float y() const
+        inline const float y() const
         {
             return p_.y;
         }
 
-        const Vector2D getUnitVec() const 
+        const Vector2D getUnitVec() const
         {
+            if (getMagnitude() == 0)
+                return Vector2D{};
             Vector2D v{p_};
             return v / getMagnitude();
         }

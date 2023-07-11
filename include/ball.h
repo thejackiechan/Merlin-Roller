@@ -11,7 +11,8 @@ using Utils::WorldObject;
 class Ball : public virtual WorldObject
 {
 public:
-    Ball(int id, const Point2D &center, float radius, float mass, float xVel = 0.0, float yVel = 0.0);
+    Ball(int id, const Point2D &center, float radius, float mass,
+         float xVel = 0.0, float yVel = 0.0);
 
     inline const Point2D getCenter() const
     {
@@ -28,17 +29,19 @@ public:
         return mass_;
     }
 
-    const float getLinearVelocity()
+    inline const float getLinVelMag()
     {
-        linVel_ = Utils::computeMagnitude(xVel_, yVel_);
-        return linVel_;
+        linVelMag_ = Utils::computeMagnitude(xVel_, yVel_);
+        return linVelMag_;
     }
 
-    const Vector2D getVelVec() const {
+    inline const Vector2D getVelVec() const
+    {
         return Vector2D{xVel_, yVel_};
     }
 
-    const Vector2D getAccVec() const {
+    inline const Vector2D getAccVec() const
+    {
         return Vector2D{xAcc_, yAcc_};
     }
 
@@ -57,25 +60,46 @@ public:
         return inertia_;
     }
 
-    void printState() const override
+    inline void setCenter(const Vector2D &posVec)
     {
-        std::cout << "Ball " << getID() << " (x = " << center_.x
-                  << ", y = " << center_.y << ") (vx = " << xVel_
-                  << ", vy = " << yVel_ << ") (wz = " << angVel_ << ") \n";
+        center_.x = posVec.x();
+        center_.y = posVec.y();
     }
 
-    // setters
+    inline void setLinVels(const Vector2D &velVec)
+    {
+        xVel_ = velVec.x();
+        yVel_ = velVec.y();
+    }
+
+    inline void setLinAccs(const Vector2D &accVec)
+    {
+        xAcc_ = accVec.x();
+        yAcc_ = accVec.y();
+    }
+
+    inline void setAngVel(const float angVel)
+    {
+        angVel_ = angVel;
+    }
+
+    inline void setAngAcc(const float angAcc)
+    {
+        angAcc_ = angAcc;
+    }
+
+    void printState() const override;
 
 private:
-    Point2D center_; // [m, m]
-    float radius_;   // m
-    float mass_;     // kg
-    float linVel_;   // m/s
-    float xVel_;     // m/s
-    float yVel_;     // m/s
-    float xAcc_;     // m/s/s
-    float yAcc_;     // m/s/s
-    float angVel_;   // rad/s
-    float angAcc_;   // rad/s/s
-    float inertia_;  // kg * m^2
+    Point2D center_;  // [m, m]
+    float radius_;    // m
+    float mass_;      // kg
+    float linVelMag_; // m/s
+    float xVel_;      // m/s
+    float yVel_;      // m/s
+    float xAcc_;      // m/s/s
+    float yAcc_;      // m/s/s
+    float angVel_;    // rad/s
+    float angAcc_;    // rad/s/s
+    float inertia_;   // kg * m^2
 };

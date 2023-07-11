@@ -1,7 +1,8 @@
 #include "../include/simulation.h"
 
 #include <cmath>
-#include "physics.h"
+#include <iostream>
+#include "../include/physics.h"
 
 Simulation::Simulation(SharedPtrVec<Utils::WorldObject> &objVec, float dt, float duration)
     : dt_{dt}, endTime_{duration}
@@ -37,23 +38,33 @@ void Simulation::processWorldObjects(SharedPtrVec<Utils::WorldObject> &objVec)
     }
 }
 
-// void Simulation::printSlopeImpactTimes(const Ball &ball) const
-// {
-//     // one ball can have many slopes
-//     const int ballID = ball.getID();
-//     auto impactFound = ballSlopeAsscMap_.find(ballID);
-//     if (impactFound != ballSlopeAsscMap_.end())
-//     {
-//         // auto &impacts = impactFound->second;
-//         // for (const auto &impact : impacts)
-//         // {
-//         //     std::cout << "Ball " << ballID << " Slope " << impact.slopeID << " (first = "
-//         //               << impact.firstTime << ", last = " << impact.lastTime << ") \n";
-//         // }
-//     }
-// }
+void Simulation::printSlopeImpactTimes(const Ball &ball) const
+{
+    // one ball can have many slopes
+    const int ballID = ball.getID();
+    auto impactFound = slopeImpacts_.find(ballID);
+    if (impactFound != slopeImpacts_.end())
+    {
+        auto &impacts = impactFound->second;
+        for (const auto &impact : impacts)
+        {
+            std::cout << "Ball " << ballID << " Slope " << impact.slopeID << " (first = "
+                      << impact.firstTime << ", last = " << impact.lastTime << ") \n";
+        }
+    }
+}
 
-void Simulation::Tick()
+void Simulation::runSimulation()
+{
+    int numBallsInBounds = ballObjects_.size();
+    while (currTime_ < endTime_ && numBallsInBounds > 0)
+    {
+        tick(numBallsInBounds);
+        currTime_ += dt_;
+    }
+}
+
+void Simulation::tick(int &numBallsInBounds)
 {
     // Reset heights above surface
     std::unordered_map<BallID, float> heightsAboveSurf;
@@ -70,7 +81,8 @@ void Simulation::Tick()
         {
             auto ballPtr = ballObjects_.at(ballBallAsscMap_.at(ballID));
             auto slopePtr = slopeObjects_.at(slopeIdx);
-            if (!Physics::isBallInBounds(*ballPtr, *slopePtr))
+            Point2D closestPtOnSlope;
+            if (!Physics::isBallInBounds(*ballPtr, *slopePtr, closestPtOnSlope))
             {
                 slopeIdx = kResetIdx;
             }
@@ -88,12 +100,11 @@ void Simulation::Tick()
             for (int i = 0; i < slopeObjects_.size(); ++i)
             {
                 auto slopePtr = slopeObjects_.at(i);
+                Point2D closestPtOnSlope;
                 // If in bounds, get the slope closest to the ball
-                if (Physics::isBallInBounds(*ballPtr, *slopePtr))
+                if (Physics::isBallInBounds(*ballPtr, *slopePtr, closestPtOnSlope))
                 {
-                    Point2D closestPtOnSlope = Physics::getClosestPtOnSlope(*ballPtr, *slopePtr);
                     float heightAboveSurface = Physics::computeHeightAboveSurface(*ballPtr, closestPtOnSlope);
-
                     auto itr = heightsAboveSurf.find(ballID);
                     if (heightAboveSurface < itr->second)
                     {
@@ -115,8 +126,11 @@ void Simulation::Tick()
     for (auto &[ballID, height] : heightsAboveSurf)
     {
         auto ballPtr = ballObjects_.at(ballBallAsscMap_.at(ballID));
-        Vector2D ballVelVec = ballPtr->getVelVec();
+        Vector2D velVec = ballPtr->getVelVec();
         Vector2D forceSum{Physics::kGravForce};
+        float mass = ballPtr->getMass();
+        float inertia = ballPtr->getInertia();
+        float torqueSum{0.f};
 
         // impact, so we have additional forces
         if (height < kEpsilon)
@@ -130,26 +144,44 @@ void Simulation::Tick()
             if (hasImpactedItr->second)
             {
                 normalMag = Physics::computeNormalForceMag(slopeNormal);
+
+                // Update SlopeImpact
+                auto& slopeImpact = slopeImpacts_.at(ballID).back();
+                slopeImpact.lastTime = currTime_;
             }
             else
             {
-                float mass = ballPtr->getMass();
-                normalMag = Physics::computeStoppingForce(mass, slopeNormal, ballVelVec, dt_) +
+                normalMag = Physics::computeStoppingForce(mass, slopeNormal, velVec, dt_) +
                             Physics::computeGravResistForce(mass, slopeNormal) + Physics::computeRestoringForce(height);
                 hasImpactedItr->second = true;
+
+                // Create SlopeImpact
+                auto impactsItr = slopeImpacts_.find(ballID);
+                auto slopeImpact = Utils::SlopeImpact{slopePtr->getID(), currTime_, currTime_};
+
+                if (impactsItr == slopeImpacts_.end())
+                {
+                    auto slopeImpactVec = {slopeImpact};
+                    slopeImpacts_.insert(std::make_pair(ballID, slopeImpactVec));
+                }
+                else
+                {
+                    impactsItr->second.push_back(slopeImpact);
+                }
             }
             // turn normal force into vector
-            Vector2D normalForce = Physics::getNormalForceVec(normalMag, slopeNormal);
+            Vector2D normalForce = Physics::getForceVec(normalMag, slopeNormal);
 
             // now compute friction
             float frictionMag{0.f};
             float ballRadius = ballPtr->getRadius();
-            float velDiff = Physics::computeVelDiff(ballPtr->getLinearVelocity(), ballPtr->getAngVel(), ballRadius);
+            float velDiff = Physics::computeVelDiff(ballPtr->getLinVelMag(), ballPtr->getAngVel(), ballRadius);
+            auto slopeVec = slopePtr->getSlope();
 
             if (std::abs(velDiff) < kEpsilon)
             {
                 // maybe static friction applies
-                float gravAlongSlopeMag = Physics::computeGravAlongSlope(slopePtr->getSlope());
+                float gravAlongSlopeMag = Physics::computeGravAlongSlope(slopeVec);
                 float statFricMag = std::min(Physics::computeMaxStatFric(normalMag), gravAlongSlopeMag);
 
                 if (statFricMag > gravAlongSlopeMag)
@@ -159,10 +191,41 @@ void Simulation::Tick()
             {
                 // dynamic friction applies
                 frictionMag = std::min(Physics::computeMaxDynFric(normalMag),
-                                       Physics::computeFricCeaseSliding(ballPtr->getInertia(), velDiff, ballRadius, dt_));
+                                       Physics::computeFricCeaseSliding(inertia, velDiff, ballRadius, dt_));
             }
             // turn friction force into vector
-            
+            Vector2D fricDirVec = Physics::getFricDirVec(velVec, slopeVec);
+            Vector2D frictionForce = Physics::getForceVec(frictionMag, fricDirVec);
+
+            forceSum = forceSum + normalForce + frictionForce;
+
+            // compute new torque
+            if (frictionMag != 0.f)
+            {
+                Point2D contactPoint = Physics::getClosestPtOnSlope(*ballPtr, *slopePtr);
+                torqueSum = Physics::computeFricTorque(*ballPtr, contactPoint, frictionForce);
+            }
         }
+        // update linear parameters
+        Vector2D accelVec = Physics::computeAccelVec(forceSum, mass);
+        velVec = Physics::updateVecParam(velVec, accelVec, dt_);
+        Vector2D posVec = Physics::updateVecParam(Vector2D{ballPtr->getCenter()}, velVec, dt_);
+
+        ballPtr->setLinAccs(accelVec);
+        ballPtr->setLinVels(velVec);
+        ballPtr->setCenter(posVec);
+
+        // update angular params
+        float angAcc = Physics::computeAngAcc(torqueSum, inertia);
+        float angVel = Physics::updateScalarParam(ballPtr->getAngVel(), angAcc, dt_);
+
+        ballPtr->setAngAcc(angAcc);
+        ballPtr->setAngVel(angVel);
+
+        std::cout << "t = " << currTime_ << " : ";
+        ballPtr->printState();
+
+        if (posVec.y() < kBottomBound)
+            numBallsInBounds--;
     }
 }

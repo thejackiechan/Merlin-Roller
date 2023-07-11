@@ -38,12 +38,7 @@ public:
         return normal_;
     }
 
-    void printState() const override
-    {
-        std::cout << "Slope " << getID() << ": start = (" << start_.x
-                  << ", " << start_.y << "), end = (" << end_.x
-                  << ", " << end_.y << ") \n";
-    }
+    void printState() const override;
 
 private:
     float length_;    // m

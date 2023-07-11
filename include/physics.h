@@ -17,31 +17,55 @@ namespace Physics
     const float kRestoring{1.0};        // kg/s/s
     const Vector2D kGravForce{0, -kGravAccel};
 
-    Vector2D computeAccelVec(const Vector2D &forceSum, float mass);
+    inline Vector2D computeAccelVec(const Vector2D &forceSum, float mass)
+    {
+        return forceSum / mass;
+    }
 
-    Vector2D updateVecParam(const Vector2D &param, const Vector2D &deriv, float dt);
+    inline Vector2D updateVecParam(const Vector2D &param, const Vector2D &deriv, float dt)
+    {
+        return (deriv * dt) + param;
+    }
 
-    float computeAngAcc(float torqueSum, float inertia);
+    inline float computeAngAcc(float torqueSum, float inertia)
+    {
+        return torqueSum / inertia;
+    }
+
+    inline float updateScalarParam(float param, float deriv, float dt)
+    {
+        return (deriv * dt) + param;
+    }
+
+    inline float computeSurfaceVel(float angVel, float radius)
+    {
+        return radius * angVel;
+    }
+
+    inline float computeMaxStatFric(float normalForce)
+    {
+        return kFrictionStatic * normalForce;
+    }
+
+    inline float computeMaxDynFric(float normalForce)
+    {
+        return kFrictionDynamic * normalForce;
+    }
 
     float computeFricTorque(const Ball &ball, const Point2D &contactPoint, const Vector2D &fricForce);
 
-    float updateScalarParam(float param, float deriv, float dt);
-
     float computeNormalForceMag(const Vector2D &normalVec);
 
-    Vector2D getNormalForceVec(float normalForceMag, const Vector2D &normalVec);
-
-    float computeSurfaceVel(float angVel, float radius);
+    Vector2D getForceVec(float forceMag, const Vector2D &direction);
 
     float computeVelDiff(float linVel, float angVel, float radius);
 
-    float computeMaxStatFric(float normalForce);
-
     float computeGravAlongSlope(const Vector2D &slopeVec);
 
-    float computeMaxDynFric(float normalForce);
-
-    float computeFricCeaseSliding(float inertia, float velDiff, float radius, float dt);
+    inline float computeFricCeaseSliding(float inertia, float velDiff, float radius, float dt)
+    {
+        return -inertia * velDiff / (dt * radius * radius); // something's weird
+    }
 
     float computeStoppingForce(float mass, const Vector2D &normalVec, const Vector2D &linVelVec, float dt);
 
@@ -49,9 +73,11 @@ namespace Physics
 
     float computeRestoringForce(float heightAboveSurface);
 
+    Vector2D getFricDirVec(const Vector2D &velVec, const Vector2D &slopeVec);
+
     Point2D getClosestPtOnSlope(const Ball &b, const Slope &slope);
 
-    bool isBallInBounds(const Ball &ball, const Slope &slope);
+    bool isBallInBounds(const Ball &ball, const Slope &slope, Point2D &closestPtOnSlope);
 
     Vector2D computeRadiusLine(const Ball &ball, const Point2D &closestPtOnSlope);
 
