@@ -14,33 +14,48 @@ Simulation::Simulation(PtrVec<Utils::WorldObject> &objVec, float dt, float durat
 void Simulation::processWorldObjects(PtrVec<Utils::WorldObject> &objVec)
 {
     int ballIdx = 0;
-    for (auto &obj : objVec)
+    for (auto &objPtr : objVec)
     {
-        auto objType = obj->getObjType();
+        auto objType = objPtr->getObjType();
         if (objType == ObjectType::Slope)
         {
-            auto slopePtr = std::dynamic_pointer_cast<Slope>(obj);
-            if (slopePtr != nullptr)
-                slopeObjects_.emplace_back(slopePtr);
+            processSlopeObject(objPtr);
         }
         else if (objType == ObjectType::Ball)
         {
-            processBallObject(obj, ballIdx);
+            processBallObject(objPtr, ballIdx);
         }
     }
 }
 
-void Simulation::processBallObject(std::shared_ptr<Utils::WorldObject> &obj, int &objIdx)
+void Simulation::processSlopeObject(std::unique_ptr<Utils::WorldObject> &objPtr)
 {
-    auto ballPtr = std::dynamic_pointer_cast<Ball>(obj);
-    if (ballPtr != nullptr)
+    Slope *tmp = dynamic_cast<Slope*>(objPtr.get());
+    std::unique_ptr<Slope> slopePtr;
+
+    if (tmp != nullptr)
     {
-        BallID id = ballPtr->getID();
-        ballObjects_.emplace_back(ballPtr);
-        ballBallAsscMap_.insert(std::make_pair(id, objIdx));
-        ballSlopeAsscMap_.insert(std::make_pair(id, kResetIdx));
-        objIdx++;
+        objPtr.release();
+        slopePtr.reset(tmp);
+        slopeObjects_.emplace_back(std::move(slopePtr));
     }
+}
+
+void Simulation::processBallObject(std::unique_ptr<Utils::WorldObject> &objPtr, int &objIdx)
+{
+    Ball *tmp = dynamic_cast<Ball*>(objPtr.get());
+    std::unique_ptr<Ball> ballPtr;
+
+    if (tmp != nullptr) // should go through
+    {
+        objPtr.release();
+        ballPtr.reset(tmp);
+        ballObjects_.emplace_back(std::move(ballPtr));
+    }
+    BallID ballID = ballObjects_.back()->getID();
+    ballBallAsscMap_.insert(std::make_pair(ballID, objIdx));
+    ballSlopeAsscMap_.insert(std::make_pair(ballID, kResetIdx));
+    objIdx++;
 }
 
 void Simulation::printSlopeImpactTimes(const Ball &ball) const
@@ -84,8 +99,8 @@ void Simulation::resetInvalidPairsInAsscMap()
     {
         if (slopeIdx != kResetIdx)
         {
-            auto ballPtr = ballObjects_.at(ballBallAsscMap_.at(ballID));
-            auto slopePtr = slopeObjects_.at(slopeIdx);
+            const auto &ballPtr = ballObjects_.at(ballBallAsscMap_.at(ballID));
+            const auto &slopePtr = slopeObjects_.at(slopeIdx);
             Point2D closestPtOnSlope;
             if (!Physics::isBallInBounds(*ballPtr, *slopePtr, closestPtOnSlope))
             {
@@ -95,12 +110,12 @@ void Simulation::resetInvalidPairsInAsscMap()
     }
 }
 
-void Simulation::updateHeightsMapWithNewPair(BallID ballID, std::shared_ptr<Ball> ballPtr,
+void Simulation::updateHeightsMapWithNewPair(BallID ballID, const std::unique_ptr<Ball> &ballPtr,
                                              BallIDMap<float> &heightsMap)
 {
     for (int i = 0; i < slopeObjects_.size(); ++i)
     {
-        auto slopePtr = slopeObjects_.at(i);
+        const auto &slopePtr = slopeObjects_.at(i);
         Point2D closestPtOnSlope;
 
         // If in bounds, get the slope closest to the ball
@@ -140,10 +155,10 @@ void Simulation::updateHeightsMapWithAsscMap(BallIDMap<float> &heightsMap)
     }
 }
 
-void Simulation::updateHeightsMapWithExistingPair(BallID ballID, std::shared_ptr<Ball> ballPtr,
+void Simulation::updateHeightsMapWithExistingPair(BallID ballID, const std::unique_ptr<Ball> &ballPtr,
                                                   ObjIdx slopeIdx, BallIDMap<float> &heightsMap)
 {
-    auto slopePtr = slopeObjects_.at(slopeIdx);
+    const auto &slopePtr = slopeObjects_.at(slopeIdx);
     Point2D closestPtOnSlope = Physics::getClosestPtOnSlope(*ballPtr, *slopePtr);
     heightsMap.at(ballID) = Physics::computeHeightAboveSurface(*ballPtr, closestPtOnSlope);
 }
@@ -190,7 +205,7 @@ void Simulation::tick()
 
     for (auto &[ballID, height] : heightsAboveSurf)
     {
-        auto ballPtr = ballObjects_.at(ballBallAsscMap_.at(ballID));
+        const auto &ballPtr = ballObjects_.at(ballBallAsscMap_.at(ballID));
         Vector2D velVec = ballPtr->getVelVec();
         float mass = ballPtr->getMass();
 
@@ -203,7 +218,7 @@ void Simulation::tick()
         // impact, so we have additional forces
         if (height < kEpsilon)
         {
-            auto slopePtr = slopeObjects_.at(ballSlopeAsscMap_.at(ballID));
+            const auto &slopePtr = slopeObjects_.at(ballSlopeAsscMap_.at(ballID));
             SlopeID slopeID = slopePtr->getID();
 
             updateImpactData(ballID, slopeID);
@@ -231,7 +246,7 @@ void Simulation::tick()
     }
 }
 
-void Simulation::updateKinematics(std::shared_ptr<Ball> ballPtr, const Vector2D &forceSum,
+void Simulation::updateKinematics(const std::unique_ptr<Ball> &ballPtr, const Vector2D &forceSum,
                                   float torqueSum)
 {
     Vector2D velVec = ballPtr->getVelVec();
@@ -253,7 +268,7 @@ void Simulation::updateKinematics(std::shared_ptr<Ball> ballPtr, const Vector2D 
     ballPtr->setAngVel(angVel);
 }
 
-void Simulation::printBallState(std::shared_ptr<Ball> ballPtr)
+void Simulation::printBallState(const std::unique_ptr<Ball> &ballPtr)
 {
     std::cout << "t = " << currTime_ << " : ";
     ballPtr->printState();

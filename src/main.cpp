@@ -26,10 +26,11 @@ int main(void)
     Point2D s1_end{50.f, 25.f};
 
     Ball b1(b1_id, b1_c, b1_r, b1_m);
-    std::shared_ptr<Ball> b1Ptr = std::make_shared<Ball>(b1);
+
+    std::unique_ptr<Utils::WorldObject> b1Ptr = std::make_unique<Ball>(b1);
 
     Slope s1(s1_id, s1_start, s1_end);
-    std::shared_ptr<Slope> s1Ptr = std::make_shared<Slope>(s1);
+    std::unique_ptr<Utils::WorldObject> s1Ptr = std::make_unique<Slope>(s1);
 
     // Ball rolling to the right on a flat surface.
     // Slope 2 Parameters
@@ -46,16 +47,16 @@ int main(void)
     Point2D b2_c{s2_start.x + b2_x, s2_start.y + b2_r};
 
     Ball b2(b2_id, b2_c, b2_r, b2_m, x2_xVel);
-    std::shared_ptr<Ball> b2Ptr = std::make_shared<Ball>(b2);
+    std::unique_ptr<Utils::WorldObject> b2Ptr = std::make_unique<Ball>(b2);
 
     Slope s2(s2_id, s2_start, s2_end);
-    std::shared_ptr<Slope> s2Ptr = std::make_shared<Slope>(s2);
+    std::unique_ptr<Utils::WorldObject> s2Ptr = std::make_unique<Slope>(s2);
 
-    std::vector<std::shared_ptr<Utils::WorldObject>> objVec;
-    objVec.push_back(b1Ptr);
-    objVec.push_back(s1Ptr);
-    objVec.push_back(b2Ptr);
-    objVec.push_back(s2Ptr);
+    std::vector<std::unique_ptr<Utils::WorldObject>> objVec;
+    objVec.emplace_back(std::move(b1Ptr));
+    objVec.emplace_back(std::move(s1Ptr));
+    objVec.emplace_back(std::move(b2Ptr));
+    objVec.emplace_back(std::move(s2Ptr));
 
     // Simulation Parameters
     float dt = 1.0 / 50;

@@ -9,7 +9,7 @@
 #include <unordered_map>
 
 template <typename T>
-using PtrVec = std::vector<std::shared_ptr<T>>;
+using PtrVec = std::vector<std::unique_ptr<T>>;
 
 using BallID = int;
 using ObjectType = Utils::ObjectType;
@@ -20,7 +20,6 @@ using ObjIdx = int;
 template <typename T>
 using BallIDMap = std::unordered_map<BallID, T>;
 
-// simulation should end once all balls exit the screen (i.e. roll off slope and fall below y = 0)
 class Simulation
 {
 public:
@@ -34,25 +33,26 @@ public:
 
 private:
     void processWorldObjects(PtrVec<Utils::WorldObject> &objVec);
-    void processBallObject(std::shared_ptr<Utils::WorldObject> &obj, int &objIdx);
+    void processSlopeObject(std::unique_ptr<Utils::WorldObject> &objPtr);
+    void processBallObject(std::unique_ptr<Utils::WorldObject> &objPtr, int &objIdx);
     void initializeHeightsMap(BallIDMap<float> &heightsMap);
     void resetInvalidPairsInAsscMap();
-    void updateHeightsMapWithNewPair(BallID ballID, std::shared_ptr<Ball> ballPtr,
+    void updateHeightsMapWithNewPair(BallID ballID, const std::unique_ptr<Ball> &ballPtr,
                                      BallIDMap<float> &heightsMap);
-    void updateHeightsMapWithExistingPair(BallID ballID, std::shared_ptr<Ball> ballPtr,
+    void updateHeightsMapWithExistingPair(BallID ballID, const std::unique_ptr<Ball> &ballPtr,
                                           ObjIdx slopeIdx, BallIDMap<float> &heightsMap);
     void updateHeightsMapWithAsscMap(BallIDMap<float> &heightsMap);
     void updateImpactData(BallID ballID, SlopeID slopeID);
-    void updateKinematics(std::shared_ptr<Ball> ballPtr, const Vector2D &forceSum,
+    void updateKinematics(const std::unique_ptr<Ball> &ballPtr, const Vector2D &forceSum,
                           float torqueSum);
-    void printBallState(std::shared_ptr<Ball> ballPtr);
+    void printBallState(const std::unique_ptr<Ball> &ballPtr);
     void tick();
 
     PtrVec<Slope> slopeObjects_;
     PtrVec<Ball> ballObjects_;
-    float dt_;                 // s
+    float dt_;                // s
     Timestamp currTime_{0.f}; // s
-    Timestamp endTime_;        // s
+    Timestamp endTime_;       // s
     BallIDMap<ObjIdx> ballBallAsscMap_;
     BallIDMap<ObjIdx> ballSlopeAsscMap_;
     BallIDMap<std::vector<Utils::SlopeImpact>> slopeImpactsMap_;
