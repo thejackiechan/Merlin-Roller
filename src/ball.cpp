@@ -1,4 +1,5 @@
 #include "../include/ball.h"
+#include <iostream>
 
 Ball::Ball(int id, const Point2D &center, float radius, float mass, float xVel, float yVel)
     : center_{center}, radius_{radius}, mass_{mass}, xVel_{xVel}, yVel_{yVel}

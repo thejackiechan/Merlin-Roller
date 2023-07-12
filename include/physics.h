@@ -52,20 +52,18 @@ namespace Physics
         return kFrictionDynamic * normalForce;
     }
 
-    float computeFricTorque(const Ball &ball, const Point2D &contactPoint, const Vector2D &fricForce);
+    inline float computeFricCeaseSliding(float inertia, float velDiff, float radius, float dt)
+    {
+        return inertia * velDiff / (dt * radius * radius);
+    }
 
-    float computeNormalForceMag(const Vector2D &normalVec);
+    float computeFricTorque(const Ball &ball, const Point2D &contactPoint, const Vector2D &fricForce);
 
     Vector2D getForceVec(float forceMag, const Vector2D &direction);
 
     float computeVelDiff(float linVel, float angVel, float radius);
 
     float computeGravAlongSlope(const Vector2D &slopeVec);
-
-    inline float computeFricCeaseSliding(float inertia, float velDiff, float radius, float dt)
-    {
-        return -inertia * velDiff / (dt * radius * radius); // something's weird
-    }
 
     float computeStoppingForce(float mass, const Vector2D &normalVec, const Vector2D &linVelVec, float dt);
 
@@ -83,4 +81,14 @@ namespace Physics
 
     float computeHeightAboveSurface(const Ball &ball, const Point2D &closestPtOnSlope);
 
+    float computeFrictionMag(Ball &ball, const Vector2D &slopeVec, float normalMag, float dt);
+
+    float computeStaticFrictionMag(const Vector2D &slopeVec, float normalMag);
+
+    float computeDynamicFrictionMag(float normalMag, float velDiff, float inertia, float ballRadius, float dt);
+
+    Vector2D computeNormalForce(float mass, const Vector2D &velVec, const Vector2D &slopeNormal,
+                                float height, float dt, float &normalMag);
+
+    Vector2D computeFrictionForce(Ball &ball, const Vector2D &velVec, const Vector2D &slopeVec, float normalMag, float dt, float &frictionMag);
 } // namespace Physics

@@ -1,4 +1,5 @@
 #include "../include/slope.h"
+#include <iostream>
 
 Slope::Slope(int id, const Point2D &start, const Point2D &end) : start_{start}, end_{end}
 {

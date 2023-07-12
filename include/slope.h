@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include "utils.h"
 #include "linalg.h"
 

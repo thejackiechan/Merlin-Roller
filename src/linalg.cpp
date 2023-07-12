@@ -1,4 +1,5 @@
 #include "../include/linalg.h"
+#include <limits>
 
 using Vector2D = LinearAlgebra::Vector2D;
 

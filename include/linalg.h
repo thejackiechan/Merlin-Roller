@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cmath>
-#include <limits>
 #include "utils.h"
 
 using Utils::Point2D;
@@ -74,7 +72,7 @@ namespace LinearAlgebra
         const Vector2D getUnitVec() const
         {
             if (getMagnitude() == 0)
-                return Vector2D{};
+                return Vector2D{0.f, 0.f};
             Vector2D v{p_};
             return v / getMagnitude();
         }

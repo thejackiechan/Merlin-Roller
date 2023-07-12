@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include "utils.h"
 #include "linalg.h"
 
@@ -97,9 +96,9 @@ private:
     float linVelMag_; // m/s
     float xVel_;      // m/s
     float yVel_;      // m/s
-    float xAcc_;      // m/s/s
-    float yAcc_;      // m/s/s
-    float angVel_;    // rad/s
-    float angAcc_;    // rad/s/s
+    float xAcc_{0.f};      // m/s/s
+    float yAcc_{0.f};      // m/s/s
+    float angVel_{0.f};    // rad/s
+    float angAcc_{0.f};    // rad/s/s
     float inertia_;   // kg * m^2
 };

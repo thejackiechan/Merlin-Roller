@@ -1,25 +1,23 @@
 #include "../include/physics.h"
 
-float Physics::computeFricTorque(const Ball &ball, const Point2D &contactPoint, const Vector2D &fricForce)
+#include <cmath>
+#include <algorithm>
+
+float Physics::computeFricTorque(const Ball &ball, const Point2D &contactPoint,
+                                 const Vector2D &fricForce)
 {
     Vector2D radiusLine = computeRadiusLine(ball, contactPoint);
     return radiusLine.cross(fricForce);
 }
 
-float Physics::computeNormalForceMag(const Vector2D &normalVec)
-{
-    return -normalVec.dot(kGravForce) / normalVec.getMagnitude();
-}
-
 Vector2D Physics::getForceVec(float forceMag, const Vector2D &direction)
 {
-    Vector2D v{direction};
-    return v.getUnitVec() * forceMag;
+    return direction.getUnitVec() * forceMag;
 }
 
 float Physics::computeVelDiff(float linVel, float angVel, float radius)
 {
-    return linVel - computeSurfaceVel(angVel, radius);
+    return linVel - std::abs(computeSurfaceVel(angVel, radius));
 }
 
 float Physics::computeGravAlongSlope(const Vector2D &slopeVec)
@@ -27,7 +25,8 @@ float Physics::computeGravAlongSlope(const Vector2D &slopeVec)
     return slopeVec.dot(kGravForce) / slopeVec.getMagnitude();
 }
 
-float Physics::computeStoppingForce(float mass, const Vector2D &normalVec, const Vector2D &linVelVec, float dt)
+float Physics::computeStoppingForce(float mass, const Vector2D &normalVec,
+                                    const Vector2D &linVelVec, float dt)
 {
     return -mass * (normalVec.dot(linVelVec) / normalVec.getMagnitude()) / dt;
 }
@@ -54,6 +53,7 @@ Point2D Physics::getClosestPtOnSlope(const Ball &b, const Slope &slope)
     return slopeStart + Point2D(projection.x(), projection.y());
 }
 
+// checks if ball is located within x and y bounds of the slope
 bool Physics::isBallInBounds(const Ball &ball, const Slope &slope, Point2D &closestPtOnSlope)
 {
     closestPtOnSlope = getClosestPtOnSlope(ball, slope);
@@ -80,4 +80,56 @@ float Physics::computeHeightAboveSurface(const Ball &ball, const Point2D &closes
 {
     Vector2D line{ball.getCenter(), closestPtOnSlope};
     return line.getMagnitude() - ball.getRadius();
+}
+
+float Physics::computeFrictionMag(Ball &ball, const Vector2D &slopeVec, float normalMag, float dt)
+{
+    float ballRadius = ball.getRadius();
+    float velDiff = Physics::computeVelDiff(ball.getLinVelMag(), ball.getAngVel(), ballRadius);
+    float frictionMag{0.f};
+
+    if (std::abs(velDiff) < kEpsilon)
+    {
+        frictionMag = computeStaticFrictionMag(slopeVec, normalMag);
+    }
+    else
+    {
+        frictionMag = computeDynamicFrictionMag(normalMag, velDiff, ball.getInertia(), ballRadius, dt);
+    }
+    return frictionMag;
+}
+
+float Physics::computeStaticFrictionMag(const Vector2D &slopeVec, float normalMag)
+{
+    float gravAlongSlopeMag = Physics::computeGravAlongSlope(slopeVec);
+    float statFricMag = std::min(Physics::computeMaxStatFric(normalMag), gravAlongSlopeMag);
+
+    if (statFricMag > gravAlongSlopeMag)
+        return statFricMag;
+    return 0.f;
+}
+
+float Physics::computeDynamicFrictionMag(float normalMag, float velDiff, float inertia,
+                                         float ballRadius, float dt)
+{
+    float maxDynFric = Physics::computeMaxDynFric(normalMag);
+    float fricCeaseSliding = Physics::computeFricCeaseSliding(inertia, velDiff, ballRadius, dt);
+    return std::min(maxDynFric, fricCeaseSliding);
+}
+
+Vector2D Physics::computeNormalForce(float mass, const Vector2D &velVec, const Vector2D &slopeNormal,
+                                     float height, float dt, float &normalMag)
+{
+    normalMag = computeStoppingForce(mass, slopeNormal, velVec, dt) +
+                computeGravResistForce(mass, slopeNormal) +
+                computeRestoringForce(height);
+    return getForceVec(normalMag, slopeNormal);
+}
+
+Vector2D Physics::computeFrictionForce(Ball &ball, const Vector2D &velVec, const Vector2D &slopeVec,
+                                       float normalMag, float dt, float &frictionMag)
+{
+    frictionMag = Physics::computeFrictionMag(ball, slopeVec, normalMag, dt);
+    Vector2D fricDirVec = Physics::getFricDirVec(velVec, slopeVec);
+    return Physics::getForceVec(frictionMag, fricDirVec);
 }
